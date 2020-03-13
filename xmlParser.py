@@ -50,7 +50,7 @@ def check_elem(elem, order):
                 exit(32)
 
 
-def instr_argcount(elem):
+def instr_arg_count(elem):
     if elem.attrib['opcode'] in ['MOVE', 'TYPE', 'NOT', 'STRLEN', 'INT2CHAR']:
         if len(elem) != 2:
             e_wrong_argcount(elem.attrib['opcode'])
@@ -64,6 +64,20 @@ def instr_argcount(elem):
                                    'AND', 'OR', 'GETCHAR', 'STRI2INT', 'CONCAT', 'SETCHAR', 'READ']:
         if len(elem) != 3:
             e_wrong_argcount(elem.attrib['opcode'])
+    else:
+        print("Chybna instrukce", elem.attrib['opcode'], file=sys.stderr)
+        exit(32)
+
+
+def instr_arg_sytax(elem):
+    if elem.attrib['opcode'] in ['MOVE', 'TYPE', 'NOT', 'STRLEN', 'INT2CHAR']:
+        check_var(elem[0].text, elem[0].attrib['type'])
+        # TODO
+    elif elem.attrib['opcode'] in ['DEFVAR', 'POPS', 'CALL', 'LABEL', 'JUMP', 'PUSHS', 'WRITE', 'DPRINT', 'EXIT']:
+        pass
+    elif elem.attrib['opcode'] in ['ADD', 'SUB', 'MUL', 'IDIV', 'LT', 'GT', 'EQ', 'JUMPIFEQ', 'JUMPIFNEQ',
+                                   'AND', 'OR', 'GETCHAR', 'STRI2INT', 'CONCAT', 'SETCHAR', 'READ']:
+        pass
 
 
 def e_wrong_argcount(opcode):
@@ -71,23 +85,35 @@ def e_wrong_argcount(opcode):
     exit(32)
 
 
-def parse(source_file):
+def e_wrong_arg(opcode):
+    print("Nespravny argument instrukce", opcode, file=sys.stderr)
+    exit(32)
 
-    tree = ElTree.ElementTree
+
+def check_var(var, arg_type):
+    if arg_type != 'var':
+        e_wrong_arg("")
+    if not re.match('^(GF|LF|TF)@((_|-|\$|&|%|\*|!|\?|[a-zA-Z])+(_|-|\$|&|%|\*|!|\?|[a-zA-Z0-9])*)$', var):
+        e_wrong_arg("")
+
+
+def parse(source_file, content):
+
+    root = ElTree.ElementTree
     # pokud je sourcefile 0, parsuje se stdin
     if source_file != 0:
         try:
             tree = ElTree.parse(source_file)
+            root = tree.getroot()
         except ElTree.ParseError:
             print("Nespravne zformovan xml vstup.", file=sys.stderr)
             exit(31)
     else:
         try:
-            tree = ElTree.parse(sys.stdin)
+            root = ElTree.fromstring(content)
         except ElTree.ParseError:
             print("Nespravne zformovan xml vstup.", file=sys.stderr)
             exit(31)
-    root = tree.getroot()
 
     # kontrola korenoveho elem
     check_root(root)
@@ -100,5 +126,5 @@ def parse(source_file):
         check_elem(elem, order)
         order += 1
 
-        instr_argcount(elem)
-
+        instr_arg_count(elem)
+        instr_arg_sytax(elem)

@@ -11,6 +11,13 @@ if source_file == 0 and input_file == 0:
     print("Neplatne pouziti argumetu, pouzijte --help.", file=sys.stderr)
     exit(10)
 
+content = ""
+
+# nacteni obsahu na vstupu
+if source_file == 0:
+    for line in sys.stdin:
+        content += line
+
 try:
     f = open(source_file, "r")
 except OSError:
@@ -23,7 +30,7 @@ except OSError:
     print("Neni mozne otevrit/cist soubor", input_file, file=sys.stderr)
     exit(11)
 
-parse(source_file)
+parse(source_file, content)
 print("OK")
 
 """
