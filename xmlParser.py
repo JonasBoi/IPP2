@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ElTree
 import sys
 import re
+from instuction import Instruction
 
 
 def check_root(root):
@@ -173,9 +174,49 @@ def check_type(symb, arg_type):
         e_wrong_symb('type')
 
 
+def check_syntax(root):
+    order = []
+    # kontrola jednotlivych elementu instrukci
+    for elem in root:
+        # check elem syntax
+        check_elem(elem, order)
+
+        instr_arg_count(elem)
+        instr_arg_sytax(elem)
+
+    # check inst order numbers
+    order.sort()
+    check = 1
+    for x in order:
+        if x != check:
+            print("Nenavazujici poradi instrukci.", file=sys.stderr)
+            exit(32)
+        check += 1
+
+
+def fill_inst_list(root):
+    inst_list = []
+
+    for elem in root:
+        index = 0
+        inst = Instruction(elem.attrib['opcode'], elem.attrib['order'])
+
+        for arg in elem:
+            inst.add_arg(arg.attrib['type'], arg.text)
+
+        inst_list.append(inst)
+
+    return inst_list
+
+
+def get_key(obj):
+    return obj['order']
+
+
 def parse(source_file, content):
 
     root = ElTree.ElementTree
+    tree = ElTree.ElementTree
     # pokud je sourcefile 0, parsuje se stdin
     if source_file != 0:
         try:
@@ -194,23 +235,20 @@ def parse(source_file, content):
     # kontrola korenoveho elem
     check_root(root)
 
-    order = []
-    # kontrola jednotlivych elementu instrukci
-    for elem in root:
+    # kontrola syntaxe a lexu instrukci
+    check_syntax(root)
 
-        # check elem syntax
-        check_elem(elem, order)
+    # vytvoreni seznamu instrukci
+    inst_list = fill_inst_list(root)
 
-        instr_arg_count(elem)
-        instr_arg_sytax(elem)
+    # sort instructions by order
+    inst_list.sort(key=lambda x: x.order, reverse=False)
 
-    # check inst order numbers
-    order.sort()
-    check = 1
-    for x in order:
-        if x != check:
-            print("Nenavazujici poradi instrukci.", file=sys.stderr)
-            exit(32)
-        check += 1
-
-    print(order)
+    """
+    for inst in inst_list:
+        print(inst.opcode)
+        print(inst.order)
+        for arg in inst.arg_list:
+            print(arg.arg_type)
+    """
+    return inst_list

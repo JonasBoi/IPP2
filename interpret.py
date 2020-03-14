@@ -2,7 +2,6 @@ from argParser import *
 from xmlParser import *
 import sys
 
-
 check_args(sys.argv)
 source_file = find_source(sys.argv)
 input_file = find_input(sys.argv)
@@ -30,8 +29,7 @@ except OSError:
     print("Neni mozne otevrit/cist soubor", input_file, file=sys.stderr)
     exit(11)
 
-parse(source_file, content)
-print("OK")
+inst_list = parse(source_file, content)
 
 """
 while True:
