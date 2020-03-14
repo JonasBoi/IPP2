@@ -30,11 +30,16 @@ def check_elem(elem, order):
             print("Neni zadany spravny atribut elementu instrukce.", file=sys.stderr)
             exit(32)
 
-    # poradi instrukci musi byt korektni
-    if int(elem.attrib['order']) != order:
-        print("Nespravne poradi instrukce.", file=sys.stderr)
+    # duplicita a zaporne poradi instrukci
+    if order.__contains__(int(elem.attrib['order'])):
+        print("Duplicitni poradi instrukce.", file=sys.stderr)
         exit(32)
+    if int(elem.attrib['order']) <= 0:
+        print("Zaporne poradi instrukce.", file=sys.stderr)
+        exit(32)
+    order.append(int(elem.attrib['order']))
 
+    # kontrola syntaxu argumentu instrukce
     arg_count = 1
     for arg in elem:
         # cislovani argumentu check
@@ -51,7 +56,7 @@ def check_elem(elem, order):
 
 
 def instr_arg_count(elem):
-    if elem.attrib['opcode'] in ['MOVE', 'TYPE', 'NOT', 'STRLEN', 'INT2CHAR']:
+    if elem.attrib['opcode'] in ['MOVE', 'TYPE', 'NOT', 'STRLEN', 'INT2CHAR', 'READ']:
         if len(elem) != 2:
             e_wrong_argcount(elem.attrib['opcode'])
     elif elem.attrib['opcode'] in ['CREATEFAME', 'PUSHFRAME', 'POPFRAME', 'RETURN', 'BREAK']:
@@ -61,7 +66,7 @@ def instr_arg_count(elem):
         if len(elem) != 1:
             e_wrong_argcount(elem.attrib['opcode'])
     elif elem.attrib['opcode'] in ['ADD', 'SUB', 'MUL', 'IDIV', 'LT', 'GT', 'EQ', 'JUMPIFEQ', 'JUMPIFNEQ',
-                                   'AND', 'OR', 'GETCHAR', 'STRI2INT', 'CONCAT', 'SETCHAR', 'READ']:
+                                   'AND', 'OR', 'GETCHAR', 'STRI2INT', 'CONCAT', 'SETCHAR']:
         if len(elem) != 3:
             e_wrong_argcount(elem.attrib['opcode'])
     else:
@@ -72,12 +77,26 @@ def instr_arg_count(elem):
 def instr_arg_sytax(elem):
     if elem.attrib['opcode'] in ['MOVE', 'TYPE', 'NOT', 'STRLEN', 'INT2CHAR']:
         check_var(elem[0].text, elem[0].attrib['type'])
-        # TODO
-    elif elem.attrib['opcode'] in ['DEFVAR', 'POPS', 'CALL', 'LABEL', 'JUMP', 'PUSHS', 'WRITE', 'DPRINT', 'EXIT']:
-        pass
-    elif elem.attrib['opcode'] in ['ADD', 'SUB', 'MUL', 'IDIV', 'LT', 'GT', 'EQ', 'JUMPIFEQ', 'JUMPIFNEQ',
-                                   'AND', 'OR', 'GETCHAR', 'STRI2INT', 'CONCAT', 'SETCHAR', 'READ']:
-        pass
+        check_symb(elem[1].text, elem[1].attrib['type'])
+    elif elem.attrib['opcode'] in ['DEFVAR', 'POPS']:
+        check_var(elem[0].text, elem[0].attrib['type'])
+    elif elem.attrib['opcode'] in ['CALL', 'LABEL', 'JUMP']:
+        check_label(elem[0].text, elem[0].attrib['type'])
+    elif elem.attrib['opcode'] in ['PUSHS', 'WRITE', 'DPRINT', 'EXIT']:
+        check_symb(elem[0].text, elem[0].attrib['type'])
+    elif elem.attrib['opcode'] in ['ADD', 'SUB', 'MUL', 'IDIV', 'LT', 'GT', 'EQ',
+                                   'AND', 'OR', 'GETCHAR', 'STRI2INT', 'CONCAT', 'SETCHAR']:
+        check_var(elem[0].text, elem[0].attrib['type'])
+        check_symb(elem[1].text, elem[1].attrib['type'])
+        check_symb(elem[2].text, elem[2].attrib['type'])
+    elif elem.attrib['opcode'] in ['JUMPIFEQ', 'JUMPIFNEQ']:
+        check_label(elem[0].text, elem[0].attrib['type'])
+        check_symb(elem[1].text, elem[1].attrib['type'])
+        check_symb(elem[2].text, elem[2].attrib['type'])
+    elif elem.attrib['opcode'] in ['READ']:
+        check_var(elem[0].text, elem[0].attrib['type'])
+        check_type(elem[1].text, elem[1].attrib['type'])
+
 
 
 def e_wrong_argcount(opcode):
@@ -90,11 +109,68 @@ def e_wrong_arg(opcode):
     exit(32)
 
 
+def e_wrong_symb(symb):
+    print("Nespravny format typu", symb, file=sys.stderr)
+    exit(32)
+
+
 def check_var(var, arg_type):
     if arg_type != 'var':
         e_wrong_arg("")
     if not re.match('^(GF|LF|TF)@((_|-|\$|&|%|\*|!|\?|[a-zA-Z])+(_|-|\$|&|%|\*|!|\?|[a-zA-Z0-9])*)$', var):
         e_wrong_arg("")
+
+
+def check_symb(symb, arg_type):
+
+    if arg_type == 'var':
+        check_var(symb, arg_type)
+    elif arg_type == 'int':
+        check_int(symb)
+    elif arg_type == 'bool':
+        check_bool(symb)
+    elif arg_type == 'string':
+        check_string(symb)
+    elif arg_type == 'nil':
+        check_nil(symb)
+    else:
+        e_wrong_arg("")
+
+
+def check_int(symb):
+    if symb == '':
+        e_wrong_symb('int')
+
+
+def check_bool(symb):
+    if not re.match('^(true|false)$', symb):
+        e_wrong_symb('bool')
+
+
+def check_string(symb):
+    if symb is not None:
+        if not re.match('^(\\\\[0-9]{3}|[^\\\])*$', symb):
+            e_wrong_symb('string')
+
+
+def check_nil(symb):
+    if not re.match('^nil$', symb):
+        e_wrong_symb('nil')
+
+
+def check_label(symb, arg_type):
+    if arg_type != 'label':
+        e_wrong_arg("")
+
+    if not re.match('^((_|-|\$|&|%|\*|!|\?|[a-zA-Z])+(_|-|\$|&|%|\*|!|\?|[a-zA-Z0-9])*)$', symb):
+        e_wrong_symb('label')
+
+
+def check_type(symb, arg_type):
+    if arg_type != 'type':
+        e_wrong_arg("")
+    if not re.match('^(int|bool|string)$', symb):
+        e_wrong_symb('type')
 
 
 def parse(source_file, content):
@@ -118,13 +194,23 @@ def parse(source_file, content):
     # kontrola korenoveho elem
     check_root(root)
 
-    order = 1
+    order = []
     # kontrola jednotlivych elementu instrukci
     for elem in root:
 
         # check elem syntax
         check_elem(elem, order)
-        order += 1
 
         instr_arg_count(elem)
         instr_arg_sytax(elem)
+
+    # check inst order numbers
+    order.sort()
+    check = 1
+    for x in order:
+        if x != check:
+            print("Nenavazujici poradi instrukci.", file=sys.stderr)
+            exit(32)
+        check += 1
+
+    print(order)
