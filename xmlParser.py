@@ -41,13 +41,13 @@ def check_elem(elem, order):
     order.append(int(elem.attrib['order']))
 
     # kontrola syntaxu argumentu instrukce
-    arg_count = 1
+    arg_count = []
     for arg in elem:
         # cislovani argumentu check
-        if arg.tag != ('arg' + str(arg_count)):
-            print("Nespravne poradi argumentu.", file=sys.stderr)
+        if arg_count.__contains__(arg.tag):
+            print("Duplicitni poradi argumentu.", file=sys.stderr)
             exit(32)
-        arg_count += 1
+        arg_count.append(arg.tag)
 
         # kontrola ze ma kazdy argument typ
         for atr in arg.attrib:
@@ -77,27 +77,97 @@ def instr_arg_count(elem):
 
 def instr_arg_sytax(elem):
     if elem.attrib['opcode'] in ['MOVE', 'TYPE', 'NOT', 'STRLEN', 'INT2CHAR']:
-        check_var(elem[0].text, elem[0].attrib['type'])
-        check_symb(elem[1].text, elem[1].attrib['type'])
+        if elem[0].tag == 'arg1':
+            check_var(elem[0].text, elem[0].attrib['type'])
+        elif elem[0].tag == 'arg2':
+            check_symb(elem[0].text, elem[0].attrib['type'])
+        else:
+            e_wrong_arg(elem.attrib['opcode'])
+
+        if elem[1].tag == 'arg1':
+            check_var(elem[1].text, elem[1].attrib['type'])
+        elif elem[1].tag == 'arg2':
+            check_symb(elem[1].text, elem[1].attrib['type'])
+        else:
+            e_wrong_arg(elem.attrib['opcode'])
+
     elif elem.attrib['opcode'] in ['DEFVAR', 'POPS']:
-        check_var(elem[0].text, elem[0].attrib['type'])
+        if elem[0].tag == 'arg1':
+            check_var(elem[0].text, elem[0].attrib['type'])
+        else:
+            e_wrong_arg(elem.attrib['opcode'])
+
     elif elem.attrib['opcode'] in ['CALL', 'LABEL', 'JUMP']:
-        check_label(elem[0].text, elem[0].attrib['type'])
+        if elem[0].tag == 'arg1':
+            check_label(elem[0].text, elem[0].attrib['type'])
+        else:
+            e_wrong_arg(elem.attrib['opcode'])
+
     elif elem.attrib['opcode'] in ['PUSHS', 'WRITE', 'DPRINT', 'EXIT']:
-        check_symb(elem[0].text, elem[0].attrib['type'])
+        if elem[0].tag == 'arg1':
+            check_symb(elem[0].text, elem[0].attrib['type'])
+        else:
+            e_wrong_arg(elem.attrib['opcode'])
+
     elif elem.attrib['opcode'] in ['ADD', 'SUB', 'MUL', 'IDIV', 'LT', 'GT', 'EQ',
                                    'AND', 'OR', 'GETCHAR', 'STRI2INT', 'CONCAT', 'SETCHAR']:
-        check_var(elem[0].text, elem[0].attrib['type'])
-        check_symb(elem[1].text, elem[1].attrib['type'])
-        check_symb(elem[2].text, elem[2].attrib['type'])
-    elif elem.attrib['opcode'] in ['JUMPIFEQ', 'JUMPIFNEQ']:
-        check_label(elem[0].text, elem[0].attrib['type'])
-        check_symb(elem[1].text, elem[1].attrib['type'])
-        check_symb(elem[2].text, elem[2].attrib['type'])
-    elif elem.attrib['opcode'] in ['READ']:
-        check_var(elem[0].text, elem[0].attrib['type'])
-        check_type(elem[1].text, elem[1].attrib['type'])
+        if elem[0].tag == 'arg1':
+            check_var(elem[0].text, elem[0].attrib['type'])
+        elif elem[0].tag in ['arg2', 'arg3']:
+            check_symb(elem[0].text, elem[0].attrib['type'])
+        else:
+            e_wrong_arg(elem.attrib['opcode'])
 
+        if elem[1].tag == 'arg1':
+            check_var(elem[1].text, elem[1].attrib['type'])
+        elif elem[1].tag in ['arg2', 'arg3']:
+            check_symb(elem[1].text, elem[1].attrib['type'])
+        else:
+            e_wrong_arg(elem.attrib['opcode'])
+
+        if elem[2].tag == 'arg1':
+            check_var(elem[2].text, elem[2].attrib['type'])
+        elif elem[2].tag in ['arg2', 'arg3']:
+            check_symb(elem[2].text, elem[2].attrib['type'])
+        else:
+            e_wrong_arg(elem.attrib['opcode'])
+
+    elif elem.attrib['opcode'] in ['JUMPIFEQ', 'JUMPIFNEQ']:
+        if elem[0].tag == 'arg1':
+            check_label(elem[0].text, elem[0].attrib['type'])
+        elif elem[0].tag in ['arg2', 'arg3']:
+            check_symb(elem[0].text, elem[0].attrib['type'])
+        else:
+            e_wrong_arg(elem.attrib['opcode'])
+
+        if elem[1].tag == 'arg1':
+            check_label(elem[1].text, elem[1].attrib['type'])
+        elif elem[1].tag in ['arg2', 'arg3']:
+            check_symb(elem[1].text, elem[1].attrib['type'])
+        else:
+            e_wrong_arg(elem.attrib['opcode'])
+
+        if elem[2].tag == 'arg1':
+            check_label(elem[2].text, elem[2].attrib['type'])
+        elif elem[2].tag in ['arg2', 'arg3']:
+            check_symb(elem[2].text, elem[2].attrib['type'])
+        else:
+            e_wrong_arg(elem.attrib['opcode'])
+
+    elif elem.attrib['opcode'] in ['READ']:
+        if elem[0].tag == 'arg1':
+            check_var(elem[0].text, elem[0].attrib['type'])
+        elif elem[0].tag == 'arg2':
+            check_type(elem[0].text, elem[0].attrib['type'])
+        else:
+            e_wrong_arg(elem.attrib['opcode'])
+
+        if elem[1].tag == 'arg1':
+            check_var(elem[1].text, elem[1].attrib['type'])
+        elif elem[1].tag == 'arg2':
+            check_type(elem[1].text, elem[1].attrib['type'])
+        else:
+            e_wrong_arg(elem.attrib['opcode'])
 
 
 def e_wrong_argcount(opcode):
@@ -202,7 +272,7 @@ def fill_inst_list(root):
         inst = Instruction(elem.attrib['opcode'], elem.attrib['order'])
 
         for arg in elem:
-            inst.add_arg(arg.attrib['type'], arg.text)
+            inst.add_arg(arg.attrib['type'], arg.text, arg.tag)
 
         inst_list.append(inst)
 
@@ -251,4 +321,5 @@ def parse(source_file, content):
         for arg in inst.arg_list:
             print(arg.arg_type)
     """
+
     return inst_list
