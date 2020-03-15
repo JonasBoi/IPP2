@@ -1,6 +1,9 @@
 from argParser import *
 from xmlParser import parse
 import sys
+from instuction import InstList
+from data import Variable
+from data import Label
 
 # process args
 check_args(sys.argv)
@@ -31,13 +34,55 @@ except OSError:
     exit(11)
 
 # parsovani xml vstupu
-inst_list = parse(source_file, content)
+i_list = parse(source_file, content)
 
-"""
-while True:
-    instruct = get_inst()
-    if instruct == 'BREAK':
+# interpretace #################
+inst_list = InstList(i_list, len(i_list))
+
+var_list = []
+label_list = []
+
+# ulozeni vsech LABELU v programu
+pom_list = InstList(i_list, len(i_list))
+j = 0
+while j < (pom_list.get_count()):
+    if pom_list.get_inst() == 'LABEL':
+        label = Label(pom_list.get_arg1(), pom_list.get_index())
+        label_list.append(label)
+
+    pom_list.set_index(pom_list.get_index() + 1)
+    j = pom_list.get_index()
+
+# prochazeni instrukcniho listu
+i = 0
+while i < (inst_list.get_count()):
+
+    if inst_list.get_inst() == 'DEFVAR':
+        var = Variable()
+        var.set_name_frame(inst_list.get_arg1())
+        var_list.append(var)
+
+    elif inst_list.get_inst() == 'LABEL':
         pass
-    elif instruct == 'DEFVAR':
-        pass
-"""
+
+    elif inst_list.get_inst() == 'JUMP':
+        new_index = inst_list.get_index()
+
+        for label in label_list:
+            if label.name == inst_list.get_arg1():
+                inst_list.set_index(label.index)
+
+    inst_list.set_index(inst_list.get_index() + 1)
+    i = inst_list.get_index()
+
+###############################################################
+# kontrol printy
+for var in var_list:
+    print(var.frame)
+    print(var.name)
+
+print("\nLABELY\n")
+
+for label in label_list:
+    print(label.get_name())
+    print(label.get_index())

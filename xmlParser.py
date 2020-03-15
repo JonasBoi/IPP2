@@ -312,7 +312,7 @@ def parse(source_file, content):
     inst_list = fill_inst_list(root)
 
     # sort instructions by order
-    inst_list.sort(key=lambda x: x.order, reverse=False)
+    inst_list.sort(key=lambda x: int(x.order), reverse=False)
 
     """
     for inst in inst_list:
@@ -321,5 +321,4 @@ def parse(source_file, content):
         for arg in inst.arg_list:
             print(arg.arg_type)
     """
-
     return inst_list
