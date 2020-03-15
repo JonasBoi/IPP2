@@ -1,10 +1,13 @@
 class Variable:
     def __init__(self):
+        self.full_name = ""
         self.name = ""
         self.content = ""
         self.frame = "GF"
+        self.type = ""
 
     def set_name_frame(self, name):
+        self.full_name = name
         name = name.split("@")
 
         self.name = name[1]

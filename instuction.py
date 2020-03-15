@@ -1,4 +1,5 @@
 class InstList:
+
     def __init__(self, inst_list, inst_count):
         self.inst_list = inst_list
         self.inst_count = inst_count
@@ -12,6 +13,18 @@ class InstList:
 
     def get_arg2(self):
         return self.inst_list[self.index].arg_list[1].content
+
+    def get_arg3(self):
+        return self.inst_list[self.index].arg_list[2].content
+
+    def get_arg1_type(self):
+        return self.inst_list[self.index].arg_list[0].arg_type
+
+    def get_arg2_type(self):
+        return self.inst_list[self.index].arg_list[1].arg_type
+
+    def get_arg3_type(self):
+        return self.inst_list[self.index].arg_list[2].arg_type
 
     def get_index(self):
         return self.index
