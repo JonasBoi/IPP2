@@ -74,19 +74,35 @@ while i < (inst_list.get_count()):
             print("Nedefinovana promenna", inst_list.get_arg1(), file=sys.stderr)
             exit(32)
 
+    elif inst_list.get_inst() == 'WRITE':
+        print(get_content(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list))  # , end='')
+
+    elif inst_list.get_inst() == 'EXIT':
+        e_code = get_content(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list)
+        try:
+            e_code = int(e_code)
+        except (ValueError, TypeError):
+            print("E-code EXIT musi byt celociselna hodnota v intervalu <0,49>.", file=sys.stderr)
+            exit(57)
+        if 0 <= e_code < 50:
+            exit(e_code)
+        else:
+            print("E-code EXIT musi byt celociselna hodnota v intervalu <0,49>.", file=sys.stderr)
+            exit(57)
+
     inst_list.set_index(inst_list.get_index() + 1)
     i = inst_list.get_index()
 
 
 ###############################################################
-
+"""
 # kontrol printy
 for var in var_list:
     print(var.full_name)
     print(var.content)
     print(var.type)
     print("")
-"""
+
 print("\nLABELY\n")
 
 for label in label_list:
