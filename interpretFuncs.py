@@ -8,11 +8,18 @@ def set_variable(inst_list, var_list, var_type, content):
     for var in var_list:
         if var.full_name == inst_list.get_arg1():
             isdef = True
+            var.type = var_type
+            if var.type == 'int':
+                try:
+                    int(content)
+                except (ValueError, TypeError):
+                    print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
+                    exit(53)
             var.content = content
             var.type = var_type
     if not isdef:
         print("Nedefinovana promenna instrukce", inst_list.get_inst(), file=sys.stderr)
-        exit(53)
+        exit(54)
 
 
 def get_content(arg_type, arg, var_list):

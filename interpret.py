@@ -38,6 +38,9 @@ i_list = parse(source_file, content)
 # interpretace ########################################################xx
 
 var_list = []
+LF_var_list = []
+TF_var_list = []
+
 label_list = []
 
 # ulozeni vsech LABELU v programu
@@ -113,18 +116,170 @@ while i < (inst_list.get_count()):
                 get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list) != 'int'):
             print("Nepovoleny typ operandu instrukce ADD.", file=sys.stderr)
             exit(53)
-        set_variable(inst_list, var_list, 'int',
-                     (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list)) +
-                      int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list))))
+        try:
+            set_variable(inst_list, var_list, 'int',
+                         (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list)) +
+                          int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list))))
+        except (ValueError, TypeError):
+            print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
+            exit(53)
 
     elif inst_list.get_inst() == 'SUB':
         if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) != 'int' or
                 get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list) != 'int'):
-            print("Nepovoleny typ operandu instrukce ADD.", file=sys.stderr)
+            print("Nepovoleny typ operandu instrukce SUB.", file=sys.stderr)
             exit(53)
-        set_variable(inst_list, var_list, 'int',
-                     (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list)) -
-                      int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list))))
+        try:
+            set_variable(inst_list, var_list, 'int',
+                         (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list)) -
+                          int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list))))
+        except (ValueError, TypeError):
+            print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
+            exit(53)
+
+    elif inst_list.get_inst() == 'MUL':
+        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) != 'int' or
+                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list) != 'int'):
+            print("Nepovoleny typ operandu instrukce MUL.", file=sys.stderr)
+            exit(53)
+        try:
+            set_variable(inst_list, var_list, 'int',
+                         (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list)) *
+                          int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list))))
+        except (ValueError, TypeError):
+            print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
+            exit(53)
+
+    elif inst_list.get_inst() == 'IDIV':
+        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) != 'int' or
+                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list) != 'int'):
+            print("Nepovoleny typ operandu instrukce IDIV.", file=sys.stderr)
+            exit(53)
+        if int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list)) == 0:
+            print("IDIV deleni nulou.", file=sys.stderr)
+            exit(57)
+        try:
+            set_variable(inst_list, var_list, 'int',
+                         (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list)) /
+                          int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list))))
+        except (ValueError, TypeError):
+            print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
+            exit(53)
+
+    elif inst_list.get_inst() == 'LT':
+        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) !=
+                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list)):
+            print("Nepovolene porovnani typu instrukce LT", inst_list.get_arg1(), file=sys.stderr)
+            exit(53)
+        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) == 'int':
+            try:
+                if (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list)) <
+                        int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list))):
+                    set_variable(inst_list, var_list, 'bool', 'true')
+                else:
+                    set_variable(inst_list, var_list, 'bool', 'false')
+            except (ValueError, TypeError):
+                print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
+                exit(53)
+        else:
+            if (get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) ==
+                    get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list)):
+                set_variable(inst_list, var_list, 'bool', 'true')
+            else:
+                set_variable(inst_list, var_list, 'bool', 'false')
+
+    elif inst_list.get_inst() == 'GT':
+        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) !=
+                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list)):
+            print("Nepovolene porovnani typu instrukce GT", inst_list.get_arg1(), file=sys.stderr)
+            exit(53)
+        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) == 'int':
+            try:
+                if (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list)) >
+                        int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list))):
+                    set_variable(inst_list, var_list, 'bool', 'true')
+                else:
+                    set_variable(inst_list, var_list, 'bool', 'false')
+            except (ValueError, TypeError):
+                print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
+                exit(53)
+        else:
+            if (get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) ==
+                    get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list)):
+                set_variable(inst_list, var_list, 'bool', 'true')
+            else:
+                set_variable(inst_list, var_list, 'bool', 'false')
+
+    elif inst_list.get_inst() == 'EQ':
+        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) !=
+                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list)):
+            print("Nepovolene porovnani typu instrukce EQ", inst_list.get_arg1(), file=sys.stderr)
+            exit(53)
+        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) == 'int':
+            try:
+                if (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list)) ==
+                        int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list))):
+                    set_variable(inst_list, var_list, 'bool', 'true')
+                else:
+                    set_variable(inst_list, var_list, 'bool', 'false')
+            except (ValueError, TypeError):
+                print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
+                exit(53)
+        else:
+            if (get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) ==
+                    get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list)):
+                set_variable(inst_list, var_list, 'bool', 'true')
+            else:
+                set_variable(inst_list, var_list, 'bool', 'false')
+
+    elif inst_list.get_inst() == 'AND':
+        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) != 'bool' or
+                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list) != 'bool'):
+            print("Nepovoleny typ operandu instrukce AND.", file=sys.stderr)
+            exit(53)
+        a = False
+        b = False
+        if get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) == 'true':
+            a = True
+        if get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list) == 'true':
+            b = True
+        result = 'false'
+        if a and b:
+            result = 'true'
+        set_variable(inst_list, var_list, 'bool', result)
+
+    elif inst_list.get_inst() == 'OR':
+        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) != 'bool' or
+                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list) != 'bool'):
+            print("Nepovoleny typ operandu instrukce OR.", file=sys.stderr)
+            exit(53)
+        a = False
+        b = False
+        if get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) == 'true':
+            a = True
+        if get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list) == 'true':
+            b = True
+        result = 'false'
+        if a or b:
+            result = 'true'
+        set_variable(inst_list, var_list, 'bool', result)
+
+    elif inst_list.get_inst() == 'NOT':
+        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) != 'bool':
+            print("Nepovoleny typ operandu instrukce NOT.", file=sys.stderr)
+            exit(53)
+        if get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) == 'true':
+            set_variable(inst_list, var_list, 'bool', 'false')
+        else:
+            set_variable(inst_list, var_list, 'bool', 'true')
+
+    elif inst_list.get_inst() == 'INT2CHAR':
+        try:
+            set_variable(inst_list, var_list, 'string',
+                         chr(int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list))))
+        except (ValueError, TypeError):
+            print("Nepovoleny typ operandu instrukce INT2CHAR.", file=sys.stderr)
+            exit(58)
 
     elif inst_list.get_inst() == 'CONCAT':
         if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) != 'string' or
@@ -173,17 +328,3 @@ while i < (inst_list.get_count()):
     i = inst_list.get_index()
 
 ###############################################################
-"""
-# kontrol printy
-for var in var_list:
-    print(var.full_name)
-    print(var.content)
-    print(var.type)
-    print("")
-
-print("\nLABELY\n")
-
-for label in label_list:
-    print(label.get_name())
-    print(label.get_index())
-    """
