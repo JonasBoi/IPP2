@@ -32,6 +32,11 @@ def check_elem(elem, order):
             exit(32)
 
     # duplicita a zaporne poradi instrukci
+    try:
+        int(elem.attrib['order'])
+    except (ValueError, TypeError):
+        print("Nevalidni poradi instrukce.", file=sys.stderr)
+        exit(32)
     if order.__contains__(int(elem.attrib['order'])):
         print("Duplicitni poradi instrukce.", file=sys.stderr)
         exit(32)
