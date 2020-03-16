@@ -1,6 +1,40 @@
 from instuction import InstList
-from data import Label
+from data import *
 import sys
+
+
+def push_stack(data_stack, content, symb_type):
+    var = Variable()
+    var.content = content
+    var.type = symb_type
+    # var.content = get_content(symb_type, content, var_list)
+    # var.type = get_type(symb_type, content, var_list)
+
+    data_stack.append(var)
+
+
+def pop_stack(data_stack, var_list, inst_list):
+    isdef = False
+    for var in var_list:
+        if var.full_name == inst_list.get_arg1():
+            isdef = True
+
+            if len(data_stack) == 0:
+                print("Datovy zasobnik je prazdny.", file=sys.stderr)
+                exit(56)
+
+            popped = data_stack.pop()
+            var.type = popped.type
+            if var.type == 'int':
+                try:
+                    int(popped.content)
+                except (ValueError, TypeError):
+                    print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
+                    exit(53)
+            var.content = popped.content
+    if not isdef:
+        print("Nedefinovana promenna instrukce", inst_list.get_inst(), file=sys.stderr)
+        exit(54)
 
 
 def set_variable(inst_list, var_list, var_type, content):
@@ -28,7 +62,7 @@ def get_content(arg_type, arg, var_list):
             if var.full_name == arg:
                 return var.content
         print("Nedefinovana promenna", arg, file=sys.stderr)
-        exit(32)
+        exit(54)
     else:
         return arg
 

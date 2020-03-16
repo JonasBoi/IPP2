@@ -41,6 +41,8 @@ var_list = []
 LF_var_list = []
 TF_var_list = []
 
+data_stack = []
+
 label_list = []
 
 # ulozeni vsech LABELU v programu
@@ -73,6 +75,13 @@ while i < (inst_list.get_count()):
             print("Nedefinovany label", inst_list.get_arg1(), file=sys.stderr)
             exit(32)
 
+    elif inst_list.get_inst() == 'PUSHS':
+        push_stack(data_stack, get_content(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list),
+                   get_type(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list))
+
+    elif inst_list.get_inst() == 'POPS':
+        pop_stack(data_stack, var_list, inst_list)
+
     elif inst_list.get_inst() == 'JUMPIFEQ':
         if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) !=
                 get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list)):
@@ -81,16 +90,28 @@ while i < (inst_list.get_count()):
                 print("Nepovolene porovnani instrukce JUMPIFEQ", inst_list.get_arg1(), file=sys.stderr)
                 exit(53)
 
-        if (get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) ==
-                get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list)):
-            isdef = False
-            for label in label_list:
-                if label.name == inst_list.get_arg1():
-                    inst_list.set_index(label.index)
-                    isdef = True
-            if not isdef:
-                print("Nedefinovany label", inst_list.get_arg1(), file=sys.stderr)
-                exit(32)
+        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) == 'int':
+            if (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list)) ==
+                    int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list))):
+                isdef = False
+                for label in label_list:
+                    if label.name == inst_list.get_arg1():
+                        inst_list.set_index(label.index)
+                        isdef = True
+                if not isdef:
+                    print("Nedefinovany label", inst_list.get_arg1(), file=sys.stderr)
+                    exit(52)
+        else:
+            if (get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) ==
+                    get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list)):
+                isdef = False
+                for label in label_list:
+                    if label.name == inst_list.get_arg1():
+                        inst_list.set_index(label.index)
+                        isdef = True
+                if not isdef:
+                    print("Nedefinovany label", inst_list.get_arg1(), file=sys.stderr)
+                    exit(52)
 
     elif inst_list.get_inst() == 'JUMPIFNEQ':
         if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) !=
@@ -100,16 +121,28 @@ while i < (inst_list.get_count()):
                 print("Nepovolene porovnani instrukce JUMPIFNEQ", inst_list.get_arg1(), file=sys.stderr)
                 exit(53)
 
-        if (get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) !=
-                get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list)):
-            isdef = False
-            for label in label_list:
-                if label.name == inst_list.get_arg1():
-                    inst_list.set_index(label.index)
-                    isdef = True
-            if not isdef:
-                print("Nedefinovany label", inst_list.get_arg1(), file=sys.stderr)
-                exit(52)
+        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) == 'int':
+            if (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list)) !=
+                    int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list))):
+                isdef = False
+                for label in label_list:
+                    if label.name == inst_list.get_arg1():
+                        inst_list.set_index(label.index)
+                        isdef = True
+                if not isdef:
+                    print("Nedefinovany label", inst_list.get_arg1(), file=sys.stderr)
+                    exit(52)
+        else:
+            if (get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) !=
+                    get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list)):
+                isdef = False
+                for label in label_list:
+                    if label.name == inst_list.get_arg1():
+                        inst_list.set_index(label.index)
+                        isdef = True
+                if not isdef:
+                    print("Nedefinovany label", inst_list.get_arg1(), file=sys.stderr)
+                    exit(52)
 
     elif inst_list.get_inst() == 'ADD':
         if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) != 'int' or
@@ -280,6 +313,65 @@ while i < (inst_list.get_count()):
         except (ValueError, TypeError):
             print("Nepovoleny typ operandu instrukce INT2CHAR.", file=sys.stderr)
             exit(58)
+
+    elif inst_list.get_inst() == 'STRI2INT':
+        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) != 'string':
+            print("Nepovoleny typ operandu instrukce STRI2INT.", file=sys.stderr)
+            exit(53)
+        stri = get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list)
+
+        if get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list) != 'int':
+            print("Nepovoleny typ operandu instrukce STRI2INT.", file=sys.stderr)
+            exit(53)
+        index = int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list))
+
+        try:
+            set_variable(inst_list, var_list, 'int', ord(stri[index]))
+        except IndexError:
+            print("Index STRI2INT mimo hranice stringu.", file=sys.stderr)
+            exit(58)
+
+    elif inst_list.get_inst() == 'GETCHAR':
+        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) != 'string':
+            print("Nepovoleny typ operandu instrukce GETCHAR.", file=sys.stderr)
+            exit(53)
+        stri = get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list)
+
+        if get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list) != 'int':
+            print("Nepovoleny typ operandu instrukce GETCHAR.", file=sys.stderr)
+            exit(53)
+        index = int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list))
+
+        try:
+            set_variable(inst_list, var_list, 'string', stri[index])
+        except IndexError:
+            print("Index GETCHAR mimo hranice stringu.", file=sys.stderr)
+            exit(58)
+
+    elif inst_list.get_inst() == 'SETCHAR':
+        if get_type(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list) != 'string':
+            print("Nepovoleny typ operandu instrukce SETCHAR.", file=sys.stderr)
+            exit(53)
+        stri = list(get_content(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list))
+
+        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) != 'int':
+            print("Nepovoleny typ operandu instrukce GETCHAR.", file=sys.stderr)
+            exit(53)
+        index = int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list))
+
+        if get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list) != 'string':
+            print("Nepovoleny typ operandu instrukce SETCHAR.", file=sys.stderr)
+            exit(53)
+        new_str = get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list)
+        if new_str != "":
+            new_str = new_str[0]
+        try:
+            stri[index] = new_str
+        except IndexError:
+            print("Index SETCHAR mimo hranice stringu.", file=sys.stderr)
+            exit(58)
+
+        set_variable(inst_list, var_list, 'string', "".join(stri))
 
     elif inst_list.get_inst() == 'CONCAT':
         if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list) != 'string' or
