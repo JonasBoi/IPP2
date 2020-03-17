@@ -12,6 +12,7 @@ def push_stack(data_stack, content, symb_type):
 
 
 def pop_stack(data_stack, var_list, inst_list):
+    # TODO FRAMES
     isdef = False
     for var in var_list:
         if var.full_name == inst_list.get_arg1():
@@ -35,41 +36,135 @@ def pop_stack(data_stack, var_list, inst_list):
         exit(54)
 
 
-def set_variable(inst_list, var_list, var_type, content):
+def set_variable(inst_list, var_list, lf_var_list, tf_var_list, var_type, content, lf_exists, tf_exists):
+    frame = (inst_list.get_arg1().split('@'))[0]
+
     isdef = False
-    for var in var_list:
-        if var.full_name == inst_list.get_arg1():
-            isdef = True
-            var.type = var_type
-            if var.type == 'int':
-                try:
-                    int(content)
-                except (ValueError, TypeError):
-                    print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
-                    exit(53)
-            var.content = content
-            var.type = var_type
+
+    if frame == 'GF':
+        for var in var_list:
+            if var.full_name == inst_list.get_arg1():
+                isdef = True
+                var.type = var_type
+                if var.type == 'int':
+                    try:
+                        int(content)
+                    except (ValueError, TypeError):
+                        print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
+                        exit(53)
+                var.content = content
+                var.type = var_type
+    elif frame == 'LF':
+        if not lf_exists:
+            print("Rámec LF neexistuje.", file=sys.stderr)
+            exit(55)
+        for var in lf_var_list:
+            if var.full_name == inst_list.get_arg1():
+                isdef = True
+                var.type = var_type
+                if var.type == 'int':
+                    try:
+                        int(content)
+                    except (ValueError, TypeError):
+                        print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
+                        exit(53)
+                var.content = content
+                var.type = var_type
+
+    else:
+        if not tf_exists:
+            print("Rámec TF neexistuje.", file=sys.stderr)
+            exit(55)
+        for var in tf_var_list:
+            if var.full_name == inst_list.get_arg1():
+                isdef = True
+                var.type = var_type
+                if var.type == 'int':
+                    try:
+                        int(content)
+                    except (ValueError, TypeError):
+                        print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
+                        exit(53)
+                var.content = content
+                var.type = var_type
     if not isdef:
         print("Nedefinovana promenna instrukce", inst_list.get_inst(), file=sys.stderr)
         exit(54)
 
 
-def get_content(arg_type, arg, var_list):
+def get_content(arg_type, arg, var_list, tf_var_list, lf_var_list, inst_list, tf_exists, lf_exists, arg_num):
+    if arg_num == 1:
+        frame = (inst_list.get_arg1().split('@'))[0]
+    elif arg_num == 2:
+        frame = (inst_list.get_arg2().split('@'))[0]
+    else:
+        frame = (inst_list.get_arg3().split('@'))[0]
+
     if arg_type == 'var':
-        for var in var_list:
-            if var.full_name == arg:
-                return var.content
-        print("Nedefinovana promenna", arg, file=sys.stderr)
-        exit(54)
+        if frame == 'GF':
+            for var in var_list:
+                if var.full_name == arg:
+                    return var.content
+            print("Nedefinovana promenna", arg, file=sys.stderr)
+            exit(54)
+
+        elif frame == 'LF':
+            if not lf_exists:
+                print("Rámec LF neexistuje.", file=sys.stderr)
+                exit(55)
+            for var in lf_var_list:
+                if var.full_name == arg:
+                    return var.content
+            print("Nedefinovana promenna", arg, file=sys.stderr)
+            exit(54)
+
+        elif frame == 'TF':
+            if not tf_exists:
+                print("Rámec LF neexistuje.", file=sys.stderr)
+                exit(55)
+            for var in tf_var_list:
+                if var.full_name == arg:
+                    return var.content
+            print("Nedefinovana promenna", arg, file=sys.stderr)
+            exit(54)
     else:
         return arg
 
 
-def get_type(arg_type, arg, var_list):
+def get_type(arg_type, arg, var_list, tf_var_list, lf_var_list, inst_list, tf_exists, lf_exists, arg_num):
+    if arg_num == 1:
+        frame = (inst_list.get_arg1().split('@'))[0]
+    elif arg_num == 2:
+        frame = (inst_list.get_arg2().split('@'))[0]
+    else:
+        frame = (inst_list.get_arg3().split('@'))[0]
+
     if arg_type == 'var':
-        for var in var_list:
-            if var.full_name == arg:
-                return var.type
+        if frame == 'GF':
+            for var in var_list:
+                if var.full_name == arg:
+                    return var.type
+            print("Nedefinovana promenna", arg, file=sys.stderr)
+            exit(54)
+        elif frame == 'LF':
+            if not lf_exists:
+                print("Rámec LF neexistuje.", file=sys.stderr)
+                exit(55)
+            for var in lf_var_list:
+                if var.full_name == arg:
+                    return var.type
+            print("Nedefinovana promenna", arg, file=sys.stderr)
+            exit(54)
+        elif frame == 'TF':
+            if not tf_exists:
+                print("Rámec LF neexistuje.", file=sys.stderr)
+                exit(55)
+            for var in tf_var_list:
+                if var.full_name == arg:
+                    return var.type
+            print("Nedefinovana promenna", arg, file=sys.stderr)
+            exit(54)
+
     else:
         return arg_type
 
