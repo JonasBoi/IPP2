@@ -65,7 +65,7 @@ def instr_arg_count(elem):
     if elem.attrib['opcode'] in ['MOVE', 'TYPE', 'NOT', 'STRLEN', 'INT2CHAR', 'READ']:
         if len(elem) != 2:
             e_wrong_argcount(elem.attrib['opcode'])
-    elif elem.attrib['opcode'] in ['CREATEFAME', 'PUSHFRAME', 'POPFRAME', 'RETURN', 'BREAK']:
+    elif elem.attrib['opcode'] in ['CREATEFRAME', 'PUSHFRAME', 'POPFRAME', 'RETURN', 'BREAK']:
         if len(elem) != 0:
             e_wrong_argcount(elem.attrib['opcode'])
     elif elem.attrib['opcode'] in ['DEFVAR', 'POPS', 'CALL', 'LABEL', 'JUMP', 'PUSHS', 'WRITE', 'DPRINT', 'EXIT']:

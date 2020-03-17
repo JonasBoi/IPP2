@@ -137,7 +137,7 @@ while i < (inst_list.get_count()):
         tf_exists = True
 
     elif inst_list.get_inst() == 'CALL':
-        call_stack.append(inst_list.get_index() + 1)
+        call_stack.append(inst_list.get_index())
 
         isdef = False
         for label in label_list:

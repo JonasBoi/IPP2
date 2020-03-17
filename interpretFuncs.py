@@ -15,36 +15,70 @@ def pop_stack(data_stack, var_list, tf_var_list, lf_var_list, inst_list, lf_exis
     frame = (inst_list.get_arg1().split('@'))[0]
 
     if frame == 'TF':
-        if tf_exists:
-            var_list = tf_var_list
-        else:
+        if not tf_exists:
             print("Rámec TF neexistuje.", file=sys.stderr)
             exit(55)
+        isdef = False
+        for var in tf_var_list:
+            if var.full_name == inst_list.get_arg1():
+                isdef = True
+
+                if len(data_stack) == 0:
+                    print("Datovy zasobnik je prazdny.", file=sys.stderr)
+                    exit(56)
+
+                popped = data_stack.pop()
+                var.type = popped.type
+                if var.type == 'int':
+                    try:
+                        int(popped.content)
+                    except (ValueError, TypeError):
+                        print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
+                        exit(53)
+                var.content = popped.content
+
     elif frame == 'LF':
-        if lf_exists:
-            var_list = lf_var_list
-        else:
+        if not lf_exists:
             print("Rámec LF neexistuje.", file=sys.stderr)
             exit(55)
+        isdef = False
+        for var in lf_var_list:
+            if var.full_name == inst_list.get_arg1():
+                isdef = True
 
-    isdef = False
-    for var in var_list:
-        if var.full_name == inst_list.get_arg1():
-            isdef = True
+                if len(data_stack) == 0:
+                    print("Datovy zasobnik je prazdny.", file=sys.stderr)
+                    exit(56)
 
-            if len(data_stack) == 0:
-                print("Datovy zasobnik je prazdny.", file=sys.stderr)
-                exit(56)
+                popped = data_stack.pop()
+                var.type = popped.type
+                if var.type == 'int':
+                    try:
+                        int(popped.content)
+                    except (ValueError, TypeError):
+                        print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
+                        exit(53)
+                var.content = popped.content
 
-            popped = data_stack.pop()
-            var.type = popped.type
-            if var.type == 'int':
-                try:
-                    int(popped.content)
-                except (ValueError, TypeError):
-                    print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
-                    exit(53)
-            var.content = popped.content
+    else:
+        isdef = False
+        for var in var_list:
+            if var.full_name == inst_list.get_arg1():
+                isdef = True
+
+                if len(data_stack) == 0:
+                    print("Datovy zasobnik je prazdny.", file=sys.stderr)
+                    exit(56)
+
+                popped = data_stack.pop()
+                var.type = popped.type
+                if var.type == 'int':
+                    try:
+                        int(popped.content)
+                    except (ValueError, TypeError):
+                        print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
+                        exit(53)
+                var.content = popped.content
     if not isdef:
         print("Nedefinovana promenna instrukce", inst_list.get_inst(), file=sys.stderr)
         exit(54)
@@ -102,6 +136,8 @@ def set_variable(inst_list, var_list, lf_var_list, tf_var_list, var_type, conten
                 var.content = content
                 var.type = var_type
     if not isdef:
+        #print(frame)
+
         print("Nedefinovana promenna instrukce", inst_list.get_inst(), file=sys.stderr)
         exit(54)
 
