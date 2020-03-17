@@ -11,8 +11,22 @@ def push_stack(data_stack, content, symb_type):
     data_stack.append(var)
 
 
-def pop_stack(data_stack, var_list, inst_list):
-    # TODO FRAMES
+def pop_stack(data_stack, var_list, tf_var_list, lf_var_list, inst_list, lf_exists, tf_exists):
+    frame = (inst_list.get_arg1().split('@'))[0]
+
+    if frame == 'TF':
+        if tf_exists:
+            var_list = tf_var_list
+        else:
+            print("Rámec TF neexistuje.", file=sys.stderr)
+            exit(55)
+    elif frame == 'LF':
+        if lf_exists:
+            var_list = lf_var_list
+        else:
+            print("Rámec LF neexistuje.", file=sys.stderr)
+            exit(55)
+
     isdef = False
     for var in var_list:
         if var.full_name == inst_list.get_arg1():

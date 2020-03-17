@@ -56,6 +56,7 @@ tf_exists = False
 data_stack = []
 
 label_list = []
+call_stack = []
 
 # ulozeni vsech LABELU v programu
 save_labels(label_list, i_list)
@@ -71,7 +72,7 @@ while i < (inst_list.get_count()):
     curr_LF = []
     if LF_index >= 0:
         lf_exists = True
-        curr_LF = LF_var_list[LF_index]
+        curr_LF = LF_var_list[LF_index].get_lf_list()
 
     # INSTRUCTIONS
 
@@ -91,8 +92,7 @@ while i < (inst_list.get_count()):
                 print("Rámec LF neexistuje.", file=sys.stderr)
                 exit(55)
             else:
-                LF_list = LF_var_list[LF_index].get_lf_list
-                for _var in LF_list:
+                for _var in curr_LF:
                     if _var.full_name == inst_list.get_arg1():
                         print("Redefinice promenne", inst_list.get_arg1(), file=sys.stderr)
                         exit(52)
@@ -109,6 +109,52 @@ while i < (inst_list.get_count()):
                 print("Rámec TF neexistuje.", file=sys.stderr)
                 exit(55)
 
+    elif inst_list.get_inst() == 'CREATEFRAME':
+        TF_var_list.clear()
+        tf_exists = True
+
+    elif inst_list.get_inst() == 'PUSHFRAME':
+        new_frame = LocalFrame()
+        new_frame.LF_var_list = TF_var_list.copy()
+
+        for var in new_frame.get_lf_list():
+            var.full_name = var.full_name.replace('TF', 'LF')
+            var.frame = 'LF'
+
+        LF_var_list.append(new_frame)
+        tf_exists = False
+
+    elif inst_list.get_inst() == 'POPFRAME':
+        if LF_index < 0:
+            print("Rámec LF neexistuje.", file=sys.stderr)
+            exit(55)
+
+        TF_var_list = (LF_var_list.pop()).get_lf_list()
+
+        for var in TF_var_list:
+            var.full_name = var.full_name.replace('LF', 'TF')
+            var.frame = 'TF'
+        tf_exists = True
+
+    elif inst_list.get_inst() == 'CALL':
+        call_stack.append(inst_list.get_index() + 1)
+
+        isdef = False
+        for label in label_list:
+            if label.name == inst_list.get_arg1():
+                inst_list.set_index(label.index)
+                isdef = True
+        if not isdef:
+            print("Nedefinovany label", inst_list.get_arg1(), file=sys.stderr)
+            exit(52)
+
+    elif inst_list.get_inst() == 'RETURN':
+        if len(call_stack) == 0:
+            print("Zasobnik volani je prazdny.", inst_list.get_arg1(), file=sys.stderr)
+            exit(56)
+        jump_index = call_stack.pop()
+        inst_list.set_index(jump_index)
+
     elif inst_list.get_inst() == 'LABEL':
         pass
 
@@ -120,27 +166,37 @@ while i < (inst_list.get_count()):
                 isdef = True
         if not isdef:
             print("Nedefinovany label", inst_list.get_arg1(), file=sys.stderr)
-            exit(32)
+            exit(52)
 
     elif inst_list.get_inst() == 'PUSHS':
-        push_stack(data_stack, get_content(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 1),
-                   get_type(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 1))
+        push_stack(data_stack,
+                   get_content(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list, TF_var_list, curr_LF,
+                               inst_list, tf_exists, lf_exists, 1),
+                   get_type(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list, TF_var_list, curr_LF, inst_list,
+                            tf_exists, lf_exists, 1))
 
     elif inst_list.get_inst() == 'POPS':
-        pop_stack(data_stack, var_list, inst_list)
+        pop_stack(data_stack, var_list, TF_var_list, curr_LF, inst_list, lf_exists, tf_exists)
 
     elif inst_list.get_inst() == 'JUMPIFEQ':
-        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) !=
-                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3)):
+        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                     tf_exists, lf_exists, 2) !=
+                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list,
+                         tf_exists, lf_exists, 3)):
 
-            if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) != 'nil' and
-                    get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3) != 'nil'):
+            if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                         tf_exists, lf_exists, 2) != 'nil' and
+                    get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list,
+                             tf_exists, lf_exists, 3) != 'nil'):
                 print("Nepovolene porovnani instrukce JUMPIFEQ", inst_list.get_arg1(), file=sys.stderr)
                 exit(53)
 
-        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) == 'int':
-            if (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2)) ==
-                    int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3))):
+        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                    tf_exists, lf_exists, 2) == 'int':
+            if (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF,
+                                inst_list, tf_exists, lf_exists, 2)) ==
+                    int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF,
+                                    inst_list, tf_exists, lf_exists, 3))):
                 isdef = False
                 for label in label_list:
                     if label.name == inst_list.get_arg1():
@@ -150,8 +206,10 @@ while i < (inst_list.get_count()):
                     print("Nedefinovany label", inst_list.get_arg1(), file=sys.stderr)
                     exit(52)
         else:
-            if (get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) ==
-                    get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3)):
+            if (get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                            tf_exists, lf_exists, 2) ==
+                    get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF,
+                                inst_list, tf_exists, lf_exists, 3)):
                 isdef = False
                 for label in label_list:
                     if label.name == inst_list.get_arg1():
@@ -162,16 +220,23 @@ while i < (inst_list.get_count()):
                     exit(52)
 
     elif inst_list.get_inst() == 'JUMPIFNEQ':
-        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) !=
-                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3)):
-            if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) != 'nil' and
-                    get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3) != 'nil'):
+        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                     tf_exists, lf_exists, 2) !=
+                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list,
+                         tf_exists, lf_exists, 3)):
+            if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                         tf_exists, lf_exists, 2) != 'nil' and
+                    get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list,
+                             tf_exists, lf_exists, 3) != 'nil'):
                 print("Nepovolene porovnani instrukce JUMPIFNEQ", inst_list.get_arg1(), file=sys.stderr)
                 exit(53)
 
-        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) == 'int':
-            if (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2)) !=
-                    int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3))):
+        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                    tf_exists, lf_exists, 2) == 'int':
+            if (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF,
+                                inst_list, tf_exists, lf_exists, 2)) !=
+                    int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF,
+                                    inst_list, tf_exists, lf_exists, 3))):
                 isdef = False
                 for label in label_list:
                     if label.name == inst_list.get_arg1():
@@ -181,8 +246,10 @@ while i < (inst_list.get_count()):
                     print("Nedefinovany label", inst_list.get_arg1(), file=sys.stderr)
                     exit(52)
         else:
-            if (get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) !=
-                    get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3)):
+            if (get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                            tf_exists, lf_exists, 2) !=
+                    get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF,
+                                inst_list, tf_exists, lf_exists, 3)):
                 isdef = False
                 for label in label_list:
                     if label.name == inst_list.get_arg1():
@@ -193,73 +260,95 @@ while i < (inst_list.get_count()):
                     exit(52)
 
     elif inst_list.get_inst() == 'ADD':
-        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) != 'int' or
-                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3) != 'int'):
+        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                     tf_exists, lf_exists, 2) != 'int' or
+                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list,
+                         tf_exists, lf_exists, 3) != 'int'):
             print("Nepovoleny typ operandu instrukce ADD.", file=sys.stderr)
             exit(53)
         try:
             set_variable(inst_list, var_list, curr_LF, TF_var_list, 'int',
-                         (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2)) +
-                          int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3))),
+                         (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list,
+                                          curr_LF, inst_list, tf_exists, lf_exists, 2)) +
+                          int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list,
+                                          curr_LF, inst_list, tf_exists, lf_exists, 3))),
                          lf_exists, tf_exists)
         except (ValueError, TypeError):
             print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
             exit(53)
 
     elif inst_list.get_inst() == 'SUB':
-        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) != 'int' or
-                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3) != 'int'):
+        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                     tf_exists, lf_exists, 2) != 'int' or
+                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list,
+                         tf_exists, lf_exists, 3) != 'int'):
             print("Nepovoleny typ operandu instrukce SUB.", file=sys.stderr)
             exit(53)
         try:
             set_variable(inst_list, var_list, curr_LF, TF_var_list, 'int',
-                         (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2)) -
-                          int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3))), lf_exists,
+                         (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list,
+                                          curr_LF, inst_list, tf_exists, lf_exists, 2)) -
+                          int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list,
+                                          curr_LF, inst_list, tf_exists, lf_exists, 3))), lf_exists,
                          tf_exists)
         except (ValueError, TypeError):
             print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
             exit(53)
 
     elif inst_list.get_inst() == 'MUL':
-        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) != 'int' or
-                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3) != 'int'):
+        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                     tf_exists, lf_exists, 2) != 'int' or
+                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list,
+                         tf_exists, lf_exists, 3) != 'int'):
             print("Nepovoleny typ operandu instrukce MUL.", file=sys.stderr)
             exit(53)
         try:
             set_variable(inst_list, var_list, curr_LF, TF_var_list, 'int',
-                         (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2)) *
-                          int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3))), lf_exists,
+                         (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list,
+                                          curr_LF, inst_list, tf_exists, lf_exists, 2)) *
+                          int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list,
+                                          curr_LF, inst_list, tf_exists, lf_exists, 3))), lf_exists,
                          tf_exists)
         except (ValueError, TypeError):
             print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
             exit(53)
 
     elif inst_list.get_inst() == 'IDIV':
-        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) != 'int' or
-                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3) != 'int'):
+        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                     tf_exists, lf_exists, 2) != 'int' or
+                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list,
+                         tf_exists, lf_exists, 3) != 'int'):
             print("Nepovoleny typ operandu instrukce IDIV.", file=sys.stderr)
             exit(53)
-        if int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3)) == 0:
+        if int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list,
+                           tf_exists, lf_exists, 3)) == 0:
             print("IDIV deleni nulou.", file=sys.stderr)
             exit(57)
         try:
             set_variable(inst_list, var_list, curr_LF, TF_var_list, 'int',
-                         (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2)) /
-                          int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3))), lf_exists,
+                         (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list,
+                                          curr_LF, inst_list, tf_exists, lf_exists, 2)) /
+                          int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list,
+                                          curr_LF, inst_list, tf_exists, lf_exists, 3))), lf_exists,
                          tf_exists)
         except (ValueError, TypeError):
             print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
             exit(53)
 
     elif inst_list.get_inst() == 'LT':
-        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) !=
-                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3)):
+        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                     tf_exists, lf_exists, 2) !=
+                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list,
+                         tf_exists, lf_exists, 3)):
             print("Nepovolene porovnani typu instrukce LT", inst_list.get_arg1(), file=sys.stderr)
             exit(53)
-        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) == 'int':
+        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                    tf_exists, lf_exists, 2) == 'int':
             try:
-                if (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2)) <
-                        int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3))):
+                if (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF,
+                                    inst_list, tf_exists, lf_exists, 2)) <
+                        int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF,
+                                        inst_list, tf_exists, lf_exists, 3))):
                     set_variable(inst_list, var_list, curr_LF, TF_var_list, 'bool', 'true', lf_exists, tf_exists)
                 else:
                     set_variable(inst_list, var_list, curr_LF, TF_var_list, 'bool', 'false', lf_exists, tf_exists)
@@ -267,21 +356,28 @@ while i < (inst_list.get_count()):
                 print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
                 exit(53)
         else:
-            if (get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) ==
-                    get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3)):
+            if (get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                            tf_exists, lf_exists, 2) ==
+                    get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF,
+                                inst_list, tf_exists, lf_exists, 3)):
                 set_variable(inst_list, var_list, curr_LF, TF_var_list, 'bool', 'true', lf_exists, tf_exists)
             else:
                 set_variable(inst_list, var_list, curr_LF, TF_var_list, 'bool', 'false', lf_exists, tf_exists)
 
     elif inst_list.get_inst() == 'GT':
-        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) !=
-                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3)):
+        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                     tf_exists, lf_exists, 2) !=
+                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list,
+                         tf_exists, lf_exists, 3)):
             print("Nepovolene porovnani typu instrukce GT", inst_list.get_arg1(), file=sys.stderr)
             exit(53)
-        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) == 'int':
+        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                    tf_exists, lf_exists, 2) == 'int':
             try:
-                if (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2)) >
-                        int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3))):
+                if (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF,
+                                    inst_list, tf_exists, lf_exists, 2)) >
+                        int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF,
+                                        inst_list, tf_exists, lf_exists, 3))):
                     set_variable(inst_list, var_list, curr_LF, TF_var_list, 'bool', 'true', lf_exists, tf_exists)
                 else:
                     set_variable(inst_list, var_list, curr_LF, TF_var_list, 'bool', 'false', lf_exists, tf_exists)
@@ -289,21 +385,28 @@ while i < (inst_list.get_count()):
                 print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
                 exit(53)
         else:
-            if (get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) ==
-                    get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3)):
+            if (get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                            tf_exists, lf_exists, 2) ==
+                    get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF,
+                                inst_list, tf_exists, lf_exists, 3)):
                 set_variable(inst_list, var_list, curr_LF, TF_var_list, 'bool', 'true', lf_exists, tf_exists)
             else:
                 set_variable(inst_list, var_list, curr_LF, TF_var_list, 'bool', 'false', lf_exists, tf_exists)
 
     elif inst_list.get_inst() == 'EQ':
-        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) !=
-                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3)):
+        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                     tf_exists, lf_exists, 2) !=
+                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list,
+                         tf_exists, lf_exists, 3)):
             print("Nepovolene porovnani typu instrukce EQ", inst_list.get_arg1(), file=sys.stderr)
             exit(53)
-        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) == 'int':
+        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                    tf_exists, lf_exists, 2) == 'int':
             try:
-                if (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2)) ==
-                        int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3))):
+                if (int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF,
+                                    inst_list, tf_exists, lf_exists, 2)) ==
+                        int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF,
+                                        inst_list, tf_exists, lf_exists, 3))):
                     set_variable(inst_list, var_list, curr_LF, TF_var_list, 'bool', 'true', lf_exists, tf_exists)
                 else:
                     set_variable(inst_list, var_list, curr_LF, TF_var_list, 'bool', 'false', lf_exists, tf_exists)
@@ -311,22 +414,28 @@ while i < (inst_list.get_count()):
                 print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
                 exit(53)
         else:
-            if (get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) ==
-                    get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3)):
+            if (get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                            tf_exists, lf_exists, 2) ==
+                    get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF,
+                                inst_list, tf_exists, lf_exists, 3)):
                 set_variable(inst_list, var_list, curr_LF, TF_var_list, 'bool', 'true', lf_exists, tf_exists)
             else:
                 set_variable(inst_list, var_list, curr_LF, TF_var_list, 'bool', 'false', lf_exists, tf_exists)
 
     elif inst_list.get_inst() == 'AND':
-        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) != 'bool' or
-                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3) != 'bool'):
+        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                     tf_exists, lf_exists, 2) != 'bool' or
+                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list,
+                         tf_exists, lf_exists, 3) != 'bool'):
             print("Nepovoleny typ operandu instrukce AND.", file=sys.stderr)
             exit(53)
         a = False
         b = False
-        if get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) == 'true':
+        if get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                       tf_exists, lf_exists, 2) == 'true':
             a = True
-        if get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3) == 'true':
+        if get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list,
+                       tf_exists, lf_exists, 3) == 'true':
             b = True
         result = 'false'
         if a and b:
@@ -334,15 +443,19 @@ while i < (inst_list.get_count()):
         set_variable(inst_list, var_list, curr_LF, TF_var_list, 'bool', result, lf_exists, tf_exists)
 
     elif inst_list.get_inst() == 'OR':
-        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) != 'bool' or
-                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3) != 'bool'):
+        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                     tf_exists, lf_exists, 2) != 'bool' or
+                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list,
+                         tf_exists, lf_exists, 3) != 'bool'):
             print("Nepovoleny typ operandu instrukce OR.", file=sys.stderr)
             exit(53)
         a = False
         b = False
-        if get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) == 'true':
+        if get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                       tf_exists, lf_exists, 2) == 'true':
             a = True
-        if get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3) == 'true':
+        if get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list,
+                       tf_exists, lf_exists, 3) == 'true':
             b = True
         result = 'false'
         if a or b:
@@ -350,10 +463,12 @@ while i < (inst_list.get_count()):
         set_variable(inst_list, var_list, curr_LF, TF_var_list, 'bool', result, lf_exists, tf_exists)
 
     elif inst_list.get_inst() == 'NOT':
-        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) != 'bool':
+        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                    tf_exists, lf_exists, 2) != 'bool':
             print("Nepovoleny typ operandu instrukce NOT.", file=sys.stderr)
             exit(53)
-        if get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) == 'true':
+        if get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                       tf_exists, lf_exists, 2) == 'true':
             set_variable(inst_list, var_list, curr_LF, TF_var_list, 'bool', 'false', lf_exists, tf_exists)
         else:
             set_variable(inst_list, var_list, curr_LF, TF_var_list, 'bool', 'true', lf_exists, tf_exists)
@@ -361,22 +476,27 @@ while i < (inst_list.get_count()):
     elif inst_list.get_inst() == 'INT2CHAR':
         try:
             set_variable(inst_list, var_list, curr_LF, TF_var_list, 'string',
-                         chr(int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2))), lf_exists,
-                         tf_exists)
+                         chr(int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(),
+                                             var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2))),
+                         lf_exists, tf_exists)
         except (ValueError, TypeError):
             print("Nepovoleny typ operandu instrukce INT2CHAR.", file=sys.stderr)
             exit(58)
 
     elif inst_list.get_inst() == 'STRI2INT':
-        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) != 'string':
+        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF,
+                    inst_list, tf_exists, lf_exists, 2) != 'string':
             print("Nepovoleny typ operandu instrukce STRI2INT.", file=sys.stderr)
             exit(53)
-        stri = get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2)
+        stri = get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF,
+                           inst_list, tf_exists, lf_exists, 2)
 
-        if get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3) != 'int':
+        if get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF,
+                    inst_list, tf_exists, lf_exists, 3) != 'int':
             print("Nepovoleny typ operandu instrukce STRI2INT.", file=sys.stderr)
             exit(53)
-        index = int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3))
+        index = int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF,
+                                inst_list, tf_exists, lf_exists, 3))
 
         try:
             set_variable(inst_list, var_list, curr_LF, TF_var_list, 'int', ord(stri[index]), lf_exists, tf_exists)
@@ -385,15 +505,19 @@ while i < (inst_list.get_count()):
             exit(58)
 
     elif inst_list.get_inst() == 'GETCHAR':
-        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) != 'string':
+        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF,
+                    inst_list, tf_exists, lf_exists, 2) != 'string':
             print("Nepovoleny typ operandu instrukce GETCHAR.", file=sys.stderr)
             exit(53)
-        stri = get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2)
+        stri = get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF,
+                           inst_list, tf_exists, lf_exists, 2)
 
-        if get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3) != 'int':
+        if get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF,
+                    inst_list, tf_exists, lf_exists, 3) != 'int':
             print("Nepovoleny typ operandu instrukce GETCHAR.", file=sys.stderr)
             exit(53)
-        index = int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3))
+        index = int(get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF,
+                                inst_list, tf_exists, lf_exists, 3))
 
         try:
             set_variable(inst_list, var_list, curr_LF, TF_var_list, 'string', stri[index], lf_exists, tf_exists)
@@ -402,20 +526,26 @@ while i < (inst_list.get_count()):
             exit(58)
 
     elif inst_list.get_inst() == 'SETCHAR':
-        if get_type(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 1) != 'string':
+        if get_type(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list, TF_var_list, curr_LF,
+                    inst_list, tf_exists, lf_exists, 1) != 'string':
             print("Nepovoleny typ operandu instrukce SETCHAR.", file=sys.stderr)
             exit(53)
-        stri = list(get_content(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 1))
+        stri = list(get_content(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list, TF_var_list, curr_LF,
+                                inst_list, tf_exists, lf_exists, 1))
 
-        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) != 'int':
+        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF,
+                    inst_list, tf_exists, lf_exists, 2) != 'int':
             print("Nepovoleny typ operandu instrukce SETCHAR.", file=sys.stderr)
             exit(53)
-        index = int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2))
+        index = int(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF,
+                                inst_list, tf_exists, lf_exists, 2))
 
-        if get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3) != 'string':
+        if get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF,
+                    inst_list, tf_exists, lf_exists, 3) != 'string':
             print("Nepovoleny typ operandu instrukce SETCHAR.", file=sys.stderr)
             exit(53)
-        new_str = get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3)
+        new_str = get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF,
+                              inst_list, tf_exists, lf_exists, 3)
         if new_str != "":
             new_str = new_str[0]
         try:
@@ -427,36 +557,47 @@ while i < (inst_list.get_count()):
         set_variable(inst_list, var_list, curr_LF, TF_var_list, 'string', "".join(stri), lf_exists, tf_exists)
 
     elif inst_list.get_inst() == 'CONCAT':
-        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) != 'string' or
-                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3) != 'string'):
+        if (get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list,
+                     tf_exists, lf_exists, 2) != 'string' or
+                get_type(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list,
+                         tf_exists, lf_exists, 3) != 'string'):
             print("Nepovoleny typ operandu instrukce CONCAT.", file=sys.stderr)
             exit(53)
         set_variable(inst_list, var_list, curr_LF, TF_var_list, 'string',
-                     (get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) +
-                      get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 3)), lf_exists, tf_exists)
+                     (get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF,
+                                  inst_list, tf_exists, lf_exists, 2) +
+                      get_content(inst_list.get_arg3_type(), inst_list.get_arg3(), var_list, TF_var_list, curr_LF,
+                                  inst_list, tf_exists, lf_exists, 3)), lf_exists, tf_exists)
 
     elif inst_list.get_inst() == 'STRLEN':
-        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2) != 'string':
+        if get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF,
+                    inst_list, tf_exists, lf_exists, 2) != 'string':
             print("Nepovoleny typ operandu instrukce STRLEN.", file=sys.stderr)
             exit(53)
         set_variable(inst_list, var_list, curr_LF, TF_var_list, 'int',
-                     len(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2)), lf_exists, tf_exists)
+                     len(get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF,
+                                     inst_list, tf_exists, lf_exists, 2)), lf_exists, tf_exists)
 
     elif inst_list.get_inst() == 'TYPE':
         set_variable(inst_list, var_list, curr_LF, TF_var_list, 'string',
-                     get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2), lf_exists, tf_exists)
+                     get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF,
+                              inst_list, tf_exists, lf_exists, 2), lf_exists, tf_exists)
 
     elif inst_list.get_inst() == 'MOVE':
         set_variable(inst_list, var_list, curr_LF, TF_var_list,
-                     get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2),
-                     get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2), lf_exists, tf_exists)
+                     get_type(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF,
+                              inst_list, tf_exists, lf_exists, 2),
+                     get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF,
+                                 inst_list, tf_exists, lf_exists, 2), lf_exists, tf_exists)
 
     elif inst_list.get_inst() == 'WRITE':
-        content = get_content(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 1)
+        content = get_content(inst_list.get_arg1_type(), inst_list.get_arg1(),
+                              var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 1)
         if content == 'nil':
             print("")
         else:
-            print(get_content(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 1))  # , end='')
+            print(get_content(inst_list.get_arg1_type(), inst_list.get_arg1(),
+                              var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 1))  # , end='') TODO
 
     elif inst_list.get_inst() == 'READ':
         line = ""
@@ -467,7 +608,8 @@ while i < (inst_list.get_count()):
         else:
             line = input()
 
-        arg_type = get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2)
+        arg_type = get_content(inst_list.get_arg2_type(), inst_list.get_arg2(),
+                               var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 2)
         if line == "":
             arg_type = 'nil'
             line = 'nil'
@@ -488,10 +630,13 @@ while i < (inst_list.get_count()):
         set_variable(inst_list, var_list, curr_LF, TF_var_list, arg_type, line, lf_exists, tf_exists)
 
     elif inst_list.get_inst() == 'DPRINT':
-        print(get_content(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 1), file=sys.stderr)  # , end='')
+        print(get_content(inst_list.get_arg1_type(), inst_list.get_arg1(),
+                          var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 1),
+              file=sys.stderr)  # , end='') TODO
 
     elif inst_list.get_inst() == 'EXIT':
-        e_code = get_content(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 1)
+        e_code = get_content(inst_list.get_arg1_type(), inst_list.get_arg1(),
+                             var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 1)
         try:
             e_code = int(e_code)
         except (ValueError, TypeError):
