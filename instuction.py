@@ -44,6 +44,8 @@ class Instruction:
         self.arg_list = []
 
     def add_arg(self, arg_type, content, tag):
+        if content is None:
+            content = ""
         arg = Argument(arg_type, content, tag)
         self.arg_list.append(arg)
 
