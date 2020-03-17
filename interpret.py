@@ -15,7 +15,7 @@ if source_file == 0 and input_file == 0:
 # promenna pro ulozeni obsahu ze stdin
 content = ""
 
-# nacteni obsahu na vstupu
+# nacteni xml obsahu na vstupu pokud neni zadan soubor
 if source_file == 0:
     for line in sys.stdin:
         content += line
@@ -36,6 +36,16 @@ except OSError:
 i_list = parse(source_file, content)
 
 # interpretace ########################################################xx
+# nacteni vstupu ze souboru input, pokud existuje
+if input_file != 0:
+    content = []
+    f = open(input_file, "r")
+    while True:
+        line = f.readline()
+        line = line.rstrip('\n')
+        if line == "":
+            break
+        content.append(line)
 
 var_list = []
 LF_var_list = []
@@ -398,7 +408,40 @@ while i < (inst_list.get_count()):
                      get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list))
 
     elif inst_list.get_inst() == 'WRITE':
-        print(get_content(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list))  # , end='')
+        content = get_content(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list)
+        if content == 'nil':
+            print("")
+        else:
+            print(get_content(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list))  # , end='')
+
+    elif inst_list.get_inst() == 'READ':
+        line = ""
+        if input_file != 0:
+            if len(content) != 0:
+                line = content[0]
+                content.__delitem__(0)
+        else:
+            line = input()
+
+        arg_type = get_content(inst_list.get_arg2_type(), inst_list.get_arg2(), var_list)
+        if line == "":
+            arg_type = 'nil'
+            line = 'nil'
+
+        if arg_type == 'int':
+            try:
+                line = int(line)
+            except (ValueError, TypeError):
+                print("Int aint int.", inst_list.get_inst(), file=sys.stderr)
+                exit(53)
+        elif arg_type == 'bool':
+            line = line.upper()
+            if line == 'TRUE':
+                line = 'true'
+            else:
+                line = 'false'
+
+        set_variable(inst_list, var_list, arg_type, line)
 
     elif inst_list.get_inst() == 'DPRINT':
         print(get_content(inst_list.get_arg1_type(), inst_list.get_arg1(), var_list), file=sys.stderr)  # , end='')

@@ -7,8 +7,6 @@ def push_stack(data_stack, content, symb_type):
     var = Variable()
     var.content = content
     var.type = symb_type
-    # var.content = get_content(symb_type, content, var_list)
-    # var.type = get_type(symb_type, content, var_list)
 
     data_stack.append(var)
 
