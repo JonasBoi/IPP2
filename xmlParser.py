@@ -40,7 +40,7 @@ def check_elem(elem, order):
     if order.__contains__(int(elem.attrib['order'])):
         print("Duplicitni poradi instrukce.", file=sys.stderr)
         exit(32)
-    if int(elem.attrib['order']) <= 0:
+    if int(elem.attrib['order']) < 0:
         print("Zaporne poradi instrukce.", file=sys.stderr)
         exit(32)
     order.append(int(elem.attrib['order']))
@@ -260,6 +260,7 @@ def check_syntax(root):
         instr_arg_sytax(elem)
 
     # check inst order numbers
+    """
     order.sort()
     check = 1
     for x in order:
@@ -267,6 +268,7 @@ def check_syntax(root):
             print("Nenavazujici poradi instrukci.", file=sys.stderr)
             exit(32)
         check += 1
+    """
 
 
 def fill_inst_list(root):
