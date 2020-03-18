@@ -3,6 +3,7 @@ from xmlParser import parse
 from interpretFuncs import *
 from instuction import InstList
 from data import Variable
+import re
 
 # process args
 check_args(sys.argv)
@@ -47,16 +48,23 @@ if input_file != 0:
             break
         content.append(line)
 
+# ramce
 var_list = []
 LF_var_list = []
 TF_var_list = []
 
+# existence docasneho ramce
 tf_exists = False
 
+# datovy zasobnik
 data_stack = []
 
+# seznam labelu a zasobnik volani
 label_list = []
 call_stack = []
+
+# pocitadlo vykonanych instrukci
+inst_count = 0
 
 # ulozeni vsech LABELU v programu
 save_labels(label_list, i_list)
@@ -594,10 +602,13 @@ while i < (inst_list.get_count()):
         content = get_content(inst_list.get_arg1_type(), inst_list.get_arg1(),
                               var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 1)
         if content == 'nil':
-            print("")
+            print("", end='')
         else:
-            print(get_content(inst_list.get_arg1_type(), inst_list.get_arg1(),
-                              var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 1))  # , end='') TODO
+            for found in re.findall("\\\\[0-9][0-9][0-9]", str(content)):
+                ascii_val = found.lstrip('\\')
+                content = content.replace(found, chr(int(ascii_val)))
+
+            print(content, end='')
 
     elif inst_list.get_inst() == 'READ':
         line = ""
@@ -630,9 +641,33 @@ while i < (inst_list.get_count()):
         set_variable(inst_list, var_list, curr_LF, TF_var_list, arg_type, line, lf_exists, tf_exists)
 
     elif inst_list.get_inst() == 'DPRINT':
-        print(get_content(inst_list.get_arg1_type(), inst_list.get_arg1(),
-                          var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 1),
-              file=sys.stderr)  # , end='') TODO
+        content = get_content(inst_list.get_arg1_type(), inst_list.get_arg1(),
+                              var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 1)
+        if content == 'nil':
+            print("", end='', file=sys.stderr)
+        else:
+            for found in re.findall("\\\\[0-9][0-9][0-9]", str(content)):
+                ascii_val = found.lstrip('\\')
+                content = content.replace(found, chr(int(ascii_val)))
+
+            print(content, end='', file=sys.stderr)
+
+    elif inst_list.get_inst() == 'BREAK':
+        print("-----------------------------------------", file=sys.stderr)
+        print("Pozice instrukce v kodu (cislovano od nuly):", inst_list.get_index(), file=sys.stderr)
+        print("Pocet vykonanych instrukci:", inst_count, file=sys.stderr)
+        print("Obsah GF:", file=sys.stderr)
+        for var in var_list:
+            print(var.full_name, file=sys.stderr)
+        if lf_exists:
+            print("Obsah LF:", file=sys.stderr)
+            for var in curr_LF:
+                print(var.full_name, file=sys.stderr)
+        if tf_exists:
+            print("Obsah TF:", file=sys.stderr)
+            for var in TF_var_list:
+                print(var.full_name, file=sys.stderr)
+        print("-----------------------------------------", file=sys.stderr)
 
     elif inst_list.get_inst() == 'EXIT':
         e_code = get_content(inst_list.get_arg1_type(), inst_list.get_arg1(),
@@ -650,5 +685,6 @@ while i < (inst_list.get_count()):
 
     inst_list.set_index(inst_list.get_index() + 1)
     i = inst_list.get_index()
+    inst_count += 1
 
 ###############################################################
