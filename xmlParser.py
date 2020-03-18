@@ -4,6 +4,9 @@ import re
 from instuction import Instruction
 
 
+"""
+    kontroluje formalni spravnost korenoveho elementu xml struktury
+"""
 def check_root(root):
     # kontrola korenoveho elementu
     if root.tag != 'program':
@@ -11,15 +14,25 @@ def check_root(root):
         exit(32)
 
     # kontrola atributu a obsahu korenoveho elementu
+    is_lan = False
     for atr in root.attrib:
-        if atr != 'language':
+        if atr not in ['language', 'name', 'description']:
             print("Neni zadany spravny atribut korenoveho elementu.", file=sys.stderr)
             exit(32)
+        if atr == 'language':
+            is_lan = True
+    if not is_lan:
+        print("Neni zadany 'language' korenoveho elementu.", file=sys.stderr)
+        exit(32)
     if root.attrib['language'].upper() != 'IPPCODE20':
         print("Neni zadany spravny text korenoveho elementu.", file=sys.stderr)
         exit(32)
 
 
+"""
+    pro kazdy element instrukce kontroluje jeho formalni spravnost tzn:
+    order je int, nazev elementu, duplicita, atributy a podobne i u argumentu instrukce
+"""
 def check_elem(elem, order):
     if elem.tag != 'instruction':
         print("Ocekavan element instrukce.", file=sys.stderr)
@@ -61,6 +74,9 @@ def check_elem(elem, order):
                 exit(32)
 
 
+"""
+    Pro kazdou instrukci zkontroluje pocet jejich argumentu
+"""
 def instr_arg_count(elem):
     if elem.attrib['opcode'] in ['MOVE', 'TYPE', 'NOT', 'STRLEN', 'INT2CHAR', 'READ']:
         if len(elem) != 2:
@@ -80,6 +96,9 @@ def instr_arg_count(elem):
         exit(32)
 
 
+"""
+    Pro kazdou instrukci zkontroluje lexikalni spravnost kazdeho argumentu
+"""
 def instr_arg_sytax(elem):
     if elem.attrib['opcode'] in ['MOVE', 'TYPE', 'NOT', 'STRLEN', 'INT2CHAR']:
         if elem[0].tag == 'arg1':
@@ -198,7 +217,6 @@ def check_var(var, arg_type):
 
 
 def check_symb(symb, arg_type):
-
     if arg_type == 'var':
         check_var(symb, arg_type)
     elif arg_type == 'int':
@@ -249,6 +267,9 @@ def check_type(symb, arg_type):
         e_wrong_symb('type')
 
 
+"""
+    Vyuziva ostatni funkce pro kontrolu syntaxe/lexu instrukci a jejich argumentu
+"""
 def check_syntax(root):
     order = []
     # kontrola jednotlivych elementu instrukci
@@ -271,11 +292,14 @@ def check_syntax(root):
     """
 
 
+"""
+    volan az po vsech kontrolach, vytvori objekty argumentu, kterymi naplni objekty instrukce
+    objekty instrukce jsou pote ukladany do seznamu instrukci, ktery tato funkce vraci
+"""
 def fill_inst_list(root):
     inst_list = []
 
     for elem in root:
-        index = 0
         inst = Instruction(elem.attrib['opcode'], elem.attrib['order'])
 
         for arg in elem:
@@ -290,8 +314,11 @@ def get_key(obj):
     return obj['order']
 
 
+"""
+    Funkce zpracuje vstupni xml soubor
+    Vraci seznam instrukci s jeho argumenty
+"""
 def parse(source_file, content):
-
     root = ElTree.ElementTree
     tree = ElTree.ElementTree
     # pokud je sourcefile 0, parsuje se stdin
@@ -321,11 +348,4 @@ def parse(source_file, content):
     # sort instructions by order
     inst_list.sort(key=lambda x: int(x.order), reverse=False)
 
-    """
-    for inst in inst_list:
-        print(inst.opcode)
-        print(inst.order)
-        for arg in inst.arg_list:
-            print(arg.arg_type)
-    """
     return inst_list

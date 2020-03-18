@@ -74,10 +74,11 @@ inst_list = InstList(i_list, len(i_list))
 i = 0
 while i < (inst_list.get_count()):
 
-    # checking the frame stack
-    LF_index = len(LF_var_list) - 1
+    # kontrola zasobniku lokalnich ramcu
+    LF_index = len(LF_var_list) - 1  # ulozeni indexu ramce
     lf_exists = False
-    curr_LF = []
+    curr_LF = []  # inicializace prazdneho LF ramce
+    # kontrola existence ramce
     if LF_index >= 0:
         lf_exists = True
         curr_LF = LF_var_list[LF_index].get_lf_list()
@@ -683,8 +684,9 @@ while i < (inst_list.get_count()):
             print("E-code EXIT musi byt celociselna hodnota v intervalu <0,49>.", file=sys.stderr)
             exit(57)
 
+    # Inkrementace indexu aktualni instrukce
     inst_list.set_index(inst_list.get_index() + 1)
-    i = inst_list.get_index()
+    i = inst_list.get_index()  # inkrementace iteratotu cyklu
     inst_count += 1
 
 ###############################################################

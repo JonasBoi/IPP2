@@ -1,3 +1,7 @@
+"""
+    trida definuje operace pro praci se seznamem instrukci
+    hojne vyuzivano napric celym programem napr u semantickych kontrol
+"""
 class InstList:
 
     def __init__(self, inst_list, inst_count):
@@ -26,9 +30,11 @@ class InstList:
     def get_arg3_type(self):
         return self.inst_list[self.index].arg_list[2].arg_type
 
+    # vraci index soucasne instrukce, ktera se ma vykonavat
     def get_index(self):
         return self.index
 
+    # nastavuje index instrukce, ktera se ma jako dalsi vykonavat
     def set_index(self, index):
         self.index = index
 
@@ -36,6 +42,9 @@ class InstList:
         return self.inst_count
 
 
+"""
+    Sablona pro instrukci, obsahuje funkci pro pridani argumentu instrukci
+"""
 class Instruction:
 
     def __init__(self, opcode, order):
@@ -43,6 +52,7 @@ class Instruction:
         self.order = order
         self.arg_list = []
 
+    # prida instrukci argument, po pridani vsechny argumenty instrukce setridi podle tagu jejich elementu
     def add_arg(self, arg_type, content, tag):
         if content is None:
             content = ""
@@ -52,6 +62,9 @@ class Instruction:
         self.arg_list.sort(key=lambda x: x.tag, reverse=False)
 
 
+"""
+    Sablona pro argument instrukce
+"""
 class Argument:
     def __init__(self, arg_type, content, tag):
         self.arg_type = arg_type

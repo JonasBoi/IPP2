@@ -1,3 +1,6 @@
+"""
+    Sablona promenne, slouzi take pro uchovani hodnoty na datovem zasobniku
+"""
 class Variable:
     def __init__(self):
         self.full_name = ""
@@ -5,6 +8,7 @@ class Variable:
         self.content = ""
         self.frame = "GF"
         self.type = ""
+        self.is_init = False
 
     def set_name_frame(self, name):
         self.full_name = name
@@ -23,6 +27,9 @@ class Variable:
         return self.content
 
 
+"""
+    Sablona pro label
+"""
 class Label:
     def __init__(self, name, index):
         self.name = name
@@ -35,6 +42,10 @@ class Label:
         return self.index
 
 
+"""
+    Sablona pro objekt lokalniho ramce ktera je pote ukladana na zasobnik ramcu
+    -obsahuje pouze seznam promennych v aktualnim ramci
+"""
 class LocalFrame:
     def __init__(self):
         self.LF_var_list = []
