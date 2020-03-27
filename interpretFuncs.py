@@ -2,7 +2,6 @@ from instuction import InstList
 from data import *
 import sys
 
-
 """
     Overuje definici promenne
 """
@@ -10,6 +9,15 @@ def is_var_init(var):
     if not var.is_init:
         print("Neinicializovana promenna", var.full_name, file=sys.stderr)
         exit(56)
+
+
+"""
+    Overuje definici promenne
+"""
+def is_var_init_type(var):
+    if not var.is_init:
+        return False
+    return True
 
 
 """
@@ -245,6 +253,49 @@ def get_type(arg_type, arg, var_list, tf_var_list, lf_var_list, inst_list, tf_ex
             for var in tf_var_list:
                 if var.full_name == arg:
                     is_var_init(var)
+                    return var.type
+            print("Nedefinovana promenna", arg, file=sys.stderr)
+            exit(54)
+
+    else:
+        return arg_type
+
+
+"""
+    Zjisti typ daneho argumentu (promenne) !!!!!!!!!!SPECIALNE PRO INSTRUKCI TYPE
+"""
+def get_type_type(arg_type, arg, var_list, tf_var_list, lf_var_list, inst_list, tf_exists, lf_exists):
+
+    frame = (inst_list.get_arg2().split('@'))[0]
+
+    if arg_type == 'var':
+        if frame == 'GF':
+            for var in var_list:
+                if var.full_name == arg:
+                    if not is_var_init_type(var):
+                        return ""
+                    return var.type
+            print("Nedefinovana promenna", arg, file=sys.stderr)
+            exit(54)
+        elif frame == 'LF':
+            if not lf_exists:
+                print("Rámec LF neexistuje.", file=sys.stderr)
+                exit(55)
+            for var in lf_var_list:
+                if var.full_name == arg:
+                    if not is_var_init_type(var):
+                        return ""
+                    return var.type
+            print("Nedefinovana promenna", arg, file=sys.stderr)
+            exit(54)
+        elif frame == 'TF':
+            if not tf_exists:
+                print("Rámec LF neexistuje.", file=sys.stderr)
+                exit(55)
+            for var in tf_var_list:
+                if var.full_name == arg:
+                    if not is_var_init_type(var):
+                        return ""
                     return var.type
             print("Nedefinovana promenna", arg, file=sys.stderr)
             exit(54)

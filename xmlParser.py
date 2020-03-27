@@ -303,6 +303,11 @@ def fill_inst_list(root):
         inst = Instruction(elem.attrib['opcode'], elem.attrib['order'])
 
         for arg in elem:
+            if arg.attrib['type'] == 'string':
+                for found in re.findall("\\\\[0-9][0-9][0-9]", str(arg.text)):
+                    ascii_val = found.lstrip('\\')
+                    arg.text = arg.text.replace(found, chr(int(ascii_val)))
+
             inst.add_arg(arg.attrib['type'], arg.text, arg.tag)
 
         inst_list.append(inst)
