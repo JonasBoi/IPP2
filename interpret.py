@@ -661,14 +661,16 @@ while i < (inst_list.get_count()):
     elif inst == 'WRITE':
         content = get_content(inst_list.get_arg1_type(), inst_list.get_arg1(),
                               var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 1)
-        if content == 'nil':
+
+        if get_type(inst_list.get_arg1_type(), inst_list.get_arg1(),
+                    var_list, TF_var_list, curr_LF, inst_list, tf_exists, lf_exists, 1) == 'nil':
             print("", end='')
         else:
             for found in re.findall("\\\\[0-9][0-9][0-9]", str(content)):
                 ascii_val = found.lstrip('\\')
                 content = content.replace(found, chr(int(ascii_val)))
 
-        print(content, end='')
+            print(content, end='')
 
     elif inst == 'READ':
         line = ""
